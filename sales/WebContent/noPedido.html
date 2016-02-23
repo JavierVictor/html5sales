@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html manifest="cache.mf">
+<head>
+<meta charset="UTF-8">
+<meta name="MobileOptimized" content="width" />
+<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1" />
+<link href="style/style.css" rel="stylesheet" />
+<script type="text/javascript" src="script/script.js"></script>
+<script type="text/javascript" src="script/db.js"></script>
+<script type="text/javascript">
+var saleCode = new Date().getTime() + "";
+function cargaPagina(){
+	cargaUsuario(true,cargaData);
+	ID("menuLink").addEventListener("click",animateMenu);
+	ID("itemHome").addEventListener("click",function(){
+		browse("menu.html");
+	});
+	ID("itemBack").addEventListener("click",function(){
+		browse("ruta.html");
+	});
+	ID("itemExit").addEventListener("click",function(){
+		salir();
+	});
+	ID("saveButton").addEventListener("click",function(){
+		var presale = JSON.parse(localStorage.presale);
+		presale.obs=document.forms[0].comment.value.trim();
+		presale.noSaleCode=document.forms[0].noSaleCode.value;
+		localStorage.presale=JSON.stringify(presale);
+		
+		dbSales.transaction(function(tx){
+			//CODE,ITINERARYCODE,COMPANYCODE,CLIENTCODE,CLIENTADDRESSCODE,USERCODE,SALETYPECODE,CURRENCYCODE,SALEMODECODE,NOSALECODE,OBS,PRICELISTCODE,DELIVERYDATE,STATE
+			tx.executeSql("INSERT INTO SALE VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+					[saleCode,
+					 presale.itineraryCode,
+					 user.companyCode,
+					 presale.clientCode,
+					 presale.clientAddressCode,
+					 user.code,
+					 presale.saleTypeCode,
+					 null,
+					 null,
+					 presale.noSaleCode,
+					 presale.obs,
+					 null,
+					 null,
+					 ubication.latitude,
+					 ubication.longitude,
+					 "SAVED",
+					 toStringDate(new Date(),FULL_DATE)
+					 ]);
+			
+			tx.executeSql("UPDATE ITINERARY SET STATE = 'NOSALE' WHERE CODE=? AND CLIENTCODE=? AND CLIENTADDRESSCODE=?",
+					[presale.itineraryCode,
+					 presale.clientCode,
+					 presale.clientAddressCode]);
+			
+		},errorTransaction,function(){
+			localStorage.clear();
+			if(confirm("Desea enviar el no pedido ahora"))
+				sendToServer();
+			else
+				browse("ruta.html");
+		});
+	});
+}
+function cargaData(){
+	dbSales.transaction(function(tx){
+		tx.executeSql("SELECT CODE,NAME FROM NOSALE",[],function(tx,results){
+			if(results.rows.length>0){
+				for(var x=0;x<results.rows.length;x++){
+					var opt = document.createElement("option");
+					opt.setAttribute("value",results.rows.item(x).CODE);
+					opt.appendChild(document.createTextNode(results.rows.item(x).NAME));
+					document.forms[0].noSaleCode.appendChild(opt);
+				}
+			}
+		},errorTransaction);
+	});
+	
+}
+
+
+</script>
+<title>No Pedido</title>
+</head>
+<body>
+	<div id="menuHeader">
+		<div id="menuLink">
+			<div id="divMenuContent">
+				<div id="itemHome"><span>MENU</span></div>
+				<div id="itemBack"><span>VOLVER</span> </div>
+				<div id="itemExit"><span>SALIR</span></div>
+			</div>
+		</div>
+	</div>
+<form action="sale" method="post">
+<div style="width:90%;border-radius:10px;border: 1px #c0c0c0 solid;overflow:hidden;margin: 5% auto;display:block;box-shadow: 2px 2px 5px #999;">
+	<select name="noSaleCode" style="display:block;width:100%;border:none;border-bottom: 1px #c0c0c0 solid;height:40px;">
+	</select>
+		<input name="comment" type="text"  placeholder="observacion" style="display:block;width:100%;border:none;border-bottom: 1px #c0c0c0 solid;"/>
+		<input type="button" value="GUARDAR" id="saveButton" style="display:block;width:100%;border:none;border-bottom:1px #c0c0c0 solid;float:left;">	
+</div>
+</form>
+<div id="loadBackground" class="background">
+</div>
+</body>
+</html>

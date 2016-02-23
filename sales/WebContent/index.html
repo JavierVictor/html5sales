@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html manifest="cache.mf">
+<head>
+<meta charset="UTF-8">
+<meta name="MobileOptimized" content="width" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0,maximum-scale=1.0" />
+<link href="style/style.css"
+	rel="stylesheet" />
+<title>Autenticaci&#243;n</title>
+<style type="text/css">
+body{
+	background-color: #F0F0F0;
+}
+</style>
+<script type="text/javascript" src="script/db.js"></script>
+<script type="text/javascript" src="script/script.js"></script>
+<script type="text/javascript">
+function cargaPagina(){
+	console.log("cargapagina");
+	cargaUsuario(false,function(){
+			console.log("asignando evento");
+			ID("validateLogin").addEventListener("click",validateUser);
+	},true);
+}
+function validateUser(){
+	ID("loadBackground").style.display="block";
+	document.forms[0].latitude.value=ubication.latitude;
+	document.forms[0].longitude.value=ubication.longitude;
+	var params = getParameters(document.forms[0]);
+	sendAsyncRequest("user","POST",params,grabaUsuario,function(){
+		ID("loadBackground").style.display="none";
+		errorMessage("Ha ocurrido un error de comunicacion")
+		validateLocal();
+	});
+}
+function grabaUsuario(text){
+	var xml = responseXML(text);
+	var now = Date.now();
+	var xmlUser = xml.getElementsByTagName("user")[0];
+	if(xmlUser.getElementsByTagName("error").length>0){
+		ID("loadBackground").style.display="none";
+		errorMessage(xmlTagNodeValue(xmlUser,"error"));
+	}else{
+		dbSales.transaction(function (tx){
+			tx.executeSql("DELETE FROM USER");
+			tx.executeSql("INSERT INTO USER VALUES(?,?,?,?,?,?,?,?,?,'LOG')",
+					[xmlTagNodeValue(xmlUser.getElementsByTagName("company")[0],"code"),
+					 xmlTagNodeValue(xmlUser.getElementsByTagName("warehouse")[0],"code"),
+					 xmlTagNodeValue(xmlUser,"code"),
+					 xmlTagNodeValue(xmlUser,"name"),
+					 xmlTagNodeValue(xmlUser,"phonenumber"),
+					 xmlTagNodeValue(xmlUser,"password"),
+					 ubication.latitude,
+					 ubication.longitude,
+					 now]);
+			if(user!=null && user.code== xmlTagNodeValue(xmlUser,"code") &&
+				toStringDate(new Date(user.lastLogin), ONLY_DATE) != toStringDate(new Date(now), ONLY_DATE)){
+					tx.executeSql("UPDATE ITINERARY SET STATE = 'ACT'");
+			}
+			
+			tx.executeSql("DELETE FROM WAREHOUSE");
+			tx.executeSql("INSERT INTO WAREHOUSE VALUES(?,?,?)",
+					[xmlTagNodeValue(xmlUser.getElementsByTagName("company")[0],"code"),
+					 xmlTagNodeValue(xmlUser.getElementsByTagName("warehouse")[0],"code"),
+					 xmlTagNodeValue(xmlUser.getElementsByTagName("warehouse")[0],"name")]);
+		},errorTransaction,function(){
+			if(user!=null && user.code== xmlTagNodeValue(xmlUser,"code")){
+				welcome(xmlTagNodeValue(xmlUser,"name"));
+			}else{
+				deleteUserData(function(){
+					welcome(xmlTagNodeValue(xmlUser,"name"));
+				});
+			}
+		});
+	}
+}
+function welcome(name){
+	infoMessage("Bienvenido Sr(a) "+ name ,function(){
+		browse("menu.html");
+		});
+}
+function validateLocal(){
+	if(user!=null && user.code==document.forms[0].txtUserCode.value &&
+		user.password==document.forms[0].txtPassword.value){
+		infoMessage("Bienvenido Sr(a) "+ user.name,function(){
+			browse("menu.html");
+			});
+	}
+}
+</script>
+</head>
+<body>
+	<div id="menuHeader"></div>
+	<div style="width: 90%; margin: 0px auto;" class="authContainer">
+		<form action="user" method="post">
+			<input type="hidden" name="type" value="login"/>
+			<input type="hidden" name="latitude" />
+			<input type="hidden" name="longitude" />
+			<input type="number" name="txtUserCode" placeholder="numero de usuario" autocomplete="off"/>
+			<input type="password" name="txtPassword" placeholder="contrase&#241;a" autocomplete="off" pattern="[0-9]*"/>
+		</form>
+	</div>
+	<br />
+		<input type="button" value="ENTRAR" id="validateLogin" class="button"/>
+<div id="loadBackground" class="background"></div>
+</body>
+</html>

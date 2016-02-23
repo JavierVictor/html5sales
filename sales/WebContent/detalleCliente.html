@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html manifest="cache.mf">
+<head>
+<meta charset="UTF-8">
+<meta name="MobileOptimized" content="width" />
+<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1" />
+<link href="style/style.css"	rel="stylesheet" />
+<script type="text/javascript" src="script/db.js"></script>
+<script type="text/javascript" src="script/script.js"></script>
+<title>Ruta de clientes</title>
+<script type="text/javascript">
+function cargaPagina(){
+	cargaUsuario(true);
+	ID("menuLink").addEventListener("click",animateMenu);
+	ID("submit").addEventListener("click",submitPage);
+	ID("itemExit").addEventListener("click",function(){
+		salir();
+	});
+	ID("itemHome").addEventListener("click",function(){
+		browse("menu.html");
+	});
+	ID("itemBack").addEventListener("click",function(){
+		browse("ruta.html");
+	});
+	
+	var presale = JSON.parse(localStorage.presale);
+	dbSales.transaction(function(tx){
+		tx.executeSql("SELECT C.CODE clientCode,C.NAME clientName,C.RUC ruc,C.PHONE phone,CT.CODE clientTypeCode,CT.NAME clientTypeName,CA.CODE clientAddressCode,CA.NAME clientAddressName FROM CLIENT C INNER JOIN CLIENTTYPE CT ON C.CLIENTTYPECODE=CT.CODE INNER JOIN CLIENTADDRESS CA ON C.CODE=CA.CLIENTCODE WHERE C.CODE = ? AND CA.CODE = ?",
+				[presale.clientCode,presale.clientAddressCode],
+				function(tx,results){
+					if(results.rows.length>0){
+						client = { code:presale.clientCode,
+								name:results.rows.item(0).clientName,
+								ruc:results.rows.item(0).ruc,
+								phone:results.rows.item(0).phone,
+								clientType:{
+									code:results.rows.item(0).clientTypeCode,
+									name:results.rows.item(0).clientTypeName
+								},
+								clientAddress:{
+									code:results.rows.item(0).clientAddressCode,
+									name:results.rows.item(0).clientAddressName
+								}
+						};
+ 					}else if(presale.offRoute != undefined ){
+						client={code:presale.clientCode,
+								name:presale.clientName,
+								ruc:presale.ruc,
+								phone:presale.phone,
+								clientType:presale.clientType,
+								clientAddress:presale.clientAddresses[0]};
+					}
+					HTML("spanClientCode",client.code);
+					HTML("spanClientRuc",client.ruc);
+					HTML("spanClientName",client.name);
+					HTML("spanClientAddress",client.clientAddress.name);
+					HTML("spanClientPhone",client.phone);
+					HTML("spanClientType",client.clientType.name);
+		},errorTransaction);
+		
+		tx.executeSql("SELECT CODE,NAME,LOCAL FROM CURRENCY",[],function(tx,results){
+			if(results.rows.length>0){
+				for(var x=0;x<results.rows.length;x++){
+					var opt = document.createElement("option");
+					opt.setAttribute("value",results.rows.item(x).CODE);
+					if(results.rows.item(x).LOCAL=='true')
+						opt.setAttribute("selected","selected");
+					opt.appendChild(document.createTextNode(results.rows.item(x).NAME));
+					document.forms[0].currencyCode.appendChild(opt);
+				}
+			}
+		});
+		
+		tx.executeSql("SELECT PL.CODE,PL.NAME FROM PRICELISTCLIENT PLC INNER JOIN PRICELIST PL ON PL.CODE=PLC.PRICELISTCODE WHERE PLC.CLIENTCODE=?",
+				[presale.clientCode],
+				function(tx,results){
+					if(results.rows.length>0){
+						for(var x=0;x<results.rows.length;x++){
+							var opt = document.createElement("option");
+							opt.setAttribute("value",results.rows.item(x).CODE);
+							opt.appendChild(document.createTextNode(results.rows.item(x).NAME));
+							document.forms[0].priceListCode.appendChild(opt);
+						}
+					}else if(presale.offRoute!=undefined){
+						var priceLists=presale.priceLists;
+						if(priceLists!=null)
+						for(var x=0;x<priceLists.length;x++){
+							var opt = document.createElement("option");
+							opt.setAttribute("value",priceLists[x].code);
+							opt.appendChild(document.createTextNode(priceLists[x].name));
+							document.forms[0].priceListCode.appendChild(opt);
+						}
+					}
+		});
+	});
+	
+	 if(presale.offRoute != undefined){
+		 var saleType = document.forms[0].saleTypeCode;
+		 for(var i=0;i<saleType.length;i++){
+			 if(saleType[i].value=="N"){
+				 saleType[i].disabled=true;
+			 }
+		 }
+	 }
+}
+function submitPage(){
+	var rbt = document.clientDetailForm.saleTypeCode;
+	var presale = JSON.parse(localStorage.presale);
+	document.clientDetailForm.action="pedido.html";
+	for(var i=0;i<rbt.length;i++){
+		if(rbt[i].checked){
+			presale.saleTypeCode=rbt[i].value;
+			if(rbt[i].value=="N"){
+				document.clientDetailForm.action="noPedido.html";
+			}
+			break;
+		}
+	}
+	presale.currencyCode = document.forms[0].currencyCode.value;
+	presale.priceListCode = document.forms[0].priceListCode.value;
+	
+	localStorage.setItem("presale",JSON.stringify(presale));
+	browse(document.clientDetailForm.action);
+}
+var client = null;
+</script>
+</head>
+<body>
+<div id="menuHeader">
+		<div id="menuLink">
+				<div id="divMenuContent">
+					<div id="itemHome"><span>MENU</span></div>
+					<div id="itemBack"><span>VOLVER</span></div>
+					<div id="itemExit"><span>SALIR</span></div>
+				</div>
+		</div>
+	</div>
+<form action="pedido.html" method="post" name="clientDetailForm">
+<input type="hidden" name="type" value="pre-sale"/>
+<input type="hidden" name="clientCode" value='${param["clientCode"]}'/>
+<input type="hidden" name="clientAddressCode" value='${param["clientAddressCode"]}'/>
+	<div class="contentDetail">
+		<span class="contentTitle">C&#243;digo Cliente</span>
+		<span class="contentData" id="spanClientCode"></span>
+		<span class="contentTitle">RUC</span>
+		<span class="contentData" id="spanClientRuc"></span>
+		<span class="contentTitle">Raz&oacute;n Social</span>
+		<span class="contentData" id="spanClientName"></span>
+		<span class="contentTitle">Direcci&oacute;n</span>
+		<span class="contentData" id="spanClientAddress"></span>
+		<span class="contentTitle">Tel&#233;fono</span>
+		<span class="contentData" id="spanClientPhone"></span>
+		<span class="contentTitle">Tipo de cliente</span>
+		<span class="contentData" id="spanClientType"></span>
+		<span class="contentTitle">Lista de Precio</span>
+		<select name="priceListCode" class="contentData" style="border:1px solid #003245;border-radius:5px">
+		</select>
+		<span class="contentTitle">Moneda</span>
+		<select name="currencyCode" style="margin-bottom:10px;border:1px solid #003245;border-radius:5px" class="contentData">
+		</select>
+		<label><input name="saleTypeCode" type="radio" value="D">DEVOLUCION</label>
+		<label><input name="saleTypeCode" type="radio" value="N">NO VENTA</label>
+		<label><input name="saleTypeCode" type="radio" value="V" checked="checked">VENTA</label>
+		<input type="button" value="CONTINUAR" id="submit" style="margin-top:10px;"/>
+	</div>
+</form>
+</body>
+</html>

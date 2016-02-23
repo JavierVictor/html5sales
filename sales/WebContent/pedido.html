@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html manifest="cache.mf">
+<head>
+<meta charset="UTF-8">
+<meta name="MobileOptimized" content="width" />
+<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1" />
+<link href="style/style.css" rel="stylesheet" />
+<title>Pedido</title>
+<script type="text/javascript" src="script/script.js"></script>
+<script type="text/javascript" src="script/db.js"></script>
+<script type="text/javascript">
+	var tempTable = [];
+	var selectedProduct = null;
+	var index = 0;
+	var saveInterval = false;
+	function cargaPagina() {
+		ID("menuLink").addEventListener("click",animateMenu);
+		ID("productText").addEventListener("input", buscarTexto);
+		
+		ID("btnAdd").addEventListener("click", agregar);
+		ID("itemSale").addEventListener("click", submitPage,false);
+		ID("itemExit").addEventListener("click",function(){
+			salir();
+		});
+		ID("itemHome").addEventListener("click",function(){
+			browse("menu.html");
+		});
+		ID("itemBack").addEventListener("click",function(){
+			browse("ruta.html");
+		});
+		ID("itemFindProduct").addEventListener("click",function(){
+			ID("productContentDetail").style.display="none";
+			ID("searchProductContent").style.display="block";
+			ID("hiddenDIV").style.display="block";
+		});
+		
+		ID("btnAceptar").addEventListener("click",function(){
+			ID("hiddenDIV").style.display="none";
+			ID("cantidad").focus();
+			var val = VALUE("descuento").trim();
+			selectedProduct.discount = (val==""?0:val);
+			val = VALUE("precio").trim();
+			selectedProduct.editedPrice = (val==""?0:val);
+			SETVALUE("descuento","0");
+		});
+		ID("btnCancelar").addEventListener("click",function(){
+			document.forms[0].reset();
+			document.forms[0].codigo.focus();
+			ID("hiddenDIV").style.display="none";
+		});
+		ID("unidad").addEventListener("change",function(){
+			selectedProduct.productUnityCode=this.value;
+			for(var i=0;i<this.options.length;i++){
+				if(this.value==this.options[i].getAttribute("value")){
+					selectedProduct.price=this.options[i].getAttribute("price");
+					selectedProduct.stock=this.options[i].getAttribute("stock");
+					selectedProduct.productUnityName=this.options[i].innerHTML;
+					SETVALUE("precio",selectedProduct.price);
+					HTML("stock",selectedProduct.stock);
+					break;
+				}
+			}
+		});
+		
+		cargaUsuario(true,loadPresale);
+		setInterval(savePreSale,5000);
+		
+		var txtCodigo = ID("codigo") 
+		txtCodigo.setAttribute("type",mobileConfiguration.productCodeType);
+		if(mobileConfiguration.productCodeType=="number"){
+			txtCodigo.className="integer";
+		}
+		ID("precio").readOnly=!mobileConfiguration.saleEditPrice;
+		ID("descuento").readOnly=!mobileConfiguration.saleEditDiscount;
+		
+		txtCodigo.addEventListener("input", buscarCodigo);
+	}
+	var presale = JSON.parse(localStorage.presale);//
+	function savePreSale(){
+		if(saveInterval && tempTable!=null && tempTable.length > 0){
+			dbSales.transaction(function(tx){
+				tx.executeSql("DELETE FROM PRESALE WHERE CLIENTCODE = ? AND CLIENTADDRESSCODE = ?",[presale.clientCode,presale.clientAddressCode],function(tx,results){});
+				for(var x=0;x < index; x++){
+					var temp = tempTable[x];
+					if(temp==null)continue;
+					tx.executeSql("INSERT INTO PRESALE VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+							[user.companyCode,
+							 presale.itineraryCode,
+							 presale.clientCode,
+							 presale.clientAddressCode,
+							 temp.code,
+							 user.warehouseCode,
+							 temp.productUnityCode,
+							 temp.quantity,
+							 temp.price,
+							 temp.editedPrice,
+							 temp.discount,
+							 temp.subTotal]);
+				}
+			});
+		}
+	}
+	
+	function loadPresale(){
+		dbSales.transaction(function(tx){
+			tx.executeSql("SELECT P.CODE code, P.NAME name, P.TRADEMARK trademark, P.CATEGORYCODE categoryCode," +
+						"C.NAME categoryName, PU.CODE productUnityCode, PU.NAME productUnityName, PU.STOCK stock," +
+						"PP.PRICELISTCODE priceListCode,PS.PRICE price,PS.WAREHOUSECODE warehouseCode,PS.QUANTITY quantity," +
+						"PS.EDITEDPRICE editedPrice,PS.DISCOUNT discount, PP.PRICELISTCODE priceListCode,PS.SUBTOTAL subTotal FROM PRODUCT P INNER JOIN CATEGORY C ON C.CODE=P.CATEGORYCODE " +
+						"INNER JOIN PRODUCTUNITY PU ON P.CODE=PU.PRODUCTCODE INNER JOIN PRODUCTPRICE PP " +
+						"ON P.CODE = PP.PRODUCTCODE AND PU.CODE=PP.PRODUCTUNITYCODE INNER JOIN PRESALE PS ON " + 
+						"P.CODE=PS.PRODUCTCODE AND PU.CODE = PS.PRODUCTUNITYCODE AND PU.WAREHOUSECODE = PS.WAREHOUSECODE "+
+						"WHERE PS.CLIENTCODE = ? AND CLIENTADDRESSCODE=?	  AND PP.PRICELISTCODE = ? AND PP.CURRENCYCODE = ?",
+								[presale.clientCode,presale.clientAddressCode,presale.priceListCode,presale.currencyCode],function(tx,results){
+					if(results.rows.length>0){
+						console.log("CARGADOS : " + results.rows.length);
+						for(var i = 0;i < results.rows.length;i++){
+							var p = results.rows.item(i);
+							tempTable[i] = {
+									code:p.code,
+									name:p.name,
+									trademark:p.trademark,
+									warehouseCode:p.warehouseCode,
+									categoryCode:p.categoryCode,
+									categoryName:p.categoryName,
+									productUnityCode:p.productUnityCode,
+									productUnityName:p.productUnityName,
+									stock:p.stock,
+									priceListCode:p.priceListCode,
+									price:p.price,
+									quantity:p.quantity,
+									editedPrice:p.editedPrice,
+									discount:p.discount,
+									warehouseCode:p.warehouseCode,
+									subTotal:p.subTotal
+							};
+							refrescarTabla(tempTable[i],-1);
+						}
+						index = tempTable.length;
+					}
+					saveInterval = true;
+			},errorTransaction);
+		});
+	}
+	
+	
+	function buscarCodigo(evt){
+		var text = VALUE("codigo");
+		if(text.length>=mobileConfiguration.productCodeLength)
+		setProduct(text);
+	}
+	function buscarTexto(evt) {
+		var text = VALUE("productText");
+		if(text.length<3){
+			if(text.length==0)
+				clearElementsFrom(ID("productTableResult"));
+			return;
+		}
+		dbSales.transaction(function(tx){
+			tx.executeSql("SELECT P.CODE code, P.NAME name, C.NAME categoryName FROM PRODUCT P INNER JOIN CATEGORY C ON C.CODE=P.CATEGORYCODE WHERE P.NAME LIKE ?",
+					[text+"%"],function(tx,results){
+						var productTableResult = ID("productTableResult");
+					
+					clearElementsFrom(productTableResult);
+					if(results.rows.length>0){
+						for(var i=0;i<results.rows.length;i++){
+							var tr = document.createElement("tr");
+							tr.setAttribute("code",results.rows.item(i).code);
+							tr.addEventListener("click",function(evt){
+								SETVALUE("codigo",this.getAttribute("code"));
+								setProduct(this.getAttribute("code"));
+							});
+							var td = document.createElement("td");
+							var table = document.createElement("table");
+							var tbody = document.createElement("tbody");
+							var trIn = document.createElement("tr");
+							var tdIn = document.createElement("td");
+							tdIn.appendChild(document.createTextNode("CODIGO"));
+							tdIn.style.fontWeight="bold";
+							tdIn.style.width="100px";
+							trIn.appendChild(tdIn);
+							tdIn = document.createElement("td");
+							tdIn.appendChild(document.createTextNode(results.rows.item(i).code));
+							trIn.appendChild(tdIn);
+							tdIn = document.createElement("td");
+							tdIn.appendChild(document.createTextNode("CATEGORIA"));
+							tdIn.style.fontWeight="bold";
+							tdIn.style.width="100px";
+							trIn.appendChild(tdIn);
+							tdIn = document.createElement("td");
+							tdIn.appendChild(document.createTextNode(results.rows.item(i).categoryName));
+							trIn.appendChild(tdIn);
+							tbody.appendChild(trIn);
+							trIn = document.createElement("tr");
+							tdIn = document.createElement("td");
+							tdIn.setAttribute("colspan","4");
+							tdIn.appendChild(document.createTextNode(results.rows.item(i).name));
+							trIn.appendChild(tdIn);
+							tbody.appendChild(trIn);
+							table.appendChild(tbody);
+							td.appendChild(table);
+							tr.appendChild(td);
+							productTableResult.appendChild(tr);
+						}
+					}
+			},errorTransaction);
+		});
+	}
+
+	function agregar(){
+		var codigo = VALUE("codigo");
+		var cantidad = VALUE("cantidad");
+		var indice = -1;
+
+		if(selectedProduct != null && selectedProduct.code == codigo){
+			selectedProduct.quantity = cantidad;
+			
+			if(selectedProduct.discount>0)
+				selectedProduct.subTotal= (selectedProduct.price * (100 - selectedProduct.discount)/100  * cantidad).toFixed(3);
+			else if (selectedProduct.editedPrice!=selectedProduct.price){
+				selectedProduct.subTotal= (selectedProduct.editedPrice *  cantidad).toFixed(3);
+			}else{
+				selectedProduct.subTotal= (selectedProduct.price * cantidad).toFixed(3);
+			}
+			for(var i=0;i<tempTable.length;i++){
+				var temp = tempTable[i];
+				if(temp!=null&&temp.code==selectedProduct.code && temp.productUnityCode == selectedProduct.productUnityCode){
+					indice = i;
+					break;
+				}
+			}
+			if(indice==-1)
+				tempTable[index++] = selectedProduct;
+
+			refrescarTabla(selectedProduct,indice);
+			selectedProduct = null;
+		}
+		SETVALUE("codigo","");
+		SETVALUE("cantidad","");
+	}
+	function refrescarTabla(product,indice){
+		var tabla = ID("detailTable");
+		if(indice!=-1){
+			var tr = tabla.getElementsByTagName("tr")[indice];
+			tr.getElementsByTagName("td")[4].innerHTML=product.quantity;
+			tr.getElementsByTagName("td")[6].innerHTML= product.subTotal;
+
+		}else if(product!=null){
+			var tr = document.createElement("tr");
+			var td = document.createElement("td");
+			td.appendChild(document.createTextNode(product.code));
+			tr.appendChild(td);
+			td = document.createElement("td");
+			td.appendChild(document.createTextNode(product.name));
+			tr.appendChild(td);
+			td = document.createElement("td");
+			td.appendChild(document.createTextNode(product.productUnityName));
+			tr.appendChild(td);
+			td = document.createElement("td");
+			td.appendChild(document.createTextNode(product.price!=product.editedPrice && product.discount ==0?product.editedPrice:product.price));
+			tr.appendChild(td);
+			td = document.createElement("td");
+			td.appendChild(document.createTextNode(product.quantity));
+			tr.appendChild(td);
+			td = document.createElement("td");
+			td.appendChild(document.createTextNode((product.discount*1).toFixed(2) +"%"));
+			tr.appendChild(td);
+			td = document.createElement("td");
+			td.appendChild(document.createTextNode(product.subTotal));
+			tr.appendChild(td);
+			td = document.createElement("td");
+			td.setAttribute("class","edit");
+			td.setAttribute("onclick","javascript:editar('"+ product.code + "','"+product.productUnityCode+"',this.parentNode)");
+			tr.appendChild(td);
+			td = document.createElement("td");
+			td.setAttribute("class","delete");
+			td.setAttribute("onclick","javascript:remover('"+ product.code +"','"+product.productUnityCode+"',this.parentNode)");
+			tr.appendChild(td);
+			tabla.appendChild(tr);
+		}
+	}
+	function remover(code,unity,tr){
+		var found = false;
+		for(var i=0;i<index;i++){
+			var temp = tempTable[i];
+			if(!found && temp.code == code && temp.productUnityCode==unity){
+				found = true;
+			}
+			if(found && i< index-1){
+				tempTable[i] = tempTable[i+1];
+			}
+		}
+		tempTable[index-1] = null;
+		if(found) index--;
+
+		ID("detailTable").removeChild(tr);
+	}
+	function editar(code,unity,tr){
+
+		for(var i=0;i<index;i++){
+			var temp = tempTable[i];
+			if(temp.code == code && temp.productUnityCode==unity){
+				SETVALUE("codigo",code);
+				SETVALUE("cantidad",temp.quantity);
+				selectedProduct = temp;
+				break;
+			}
+		}
+	}
+	
+	function submitPage(evt){
+		localStorage.setItem("saleDetail",JSON.stringify(tempTable));
+		browse("resumen.html");
+	}
+	function setProduct(textCode){
+		selectedProduct = null;
+		dbSales.transaction(function(tx){
+			tx.executeSql("SELECT P.CODE code, P.NAME name, P.TRADEMARK trademark, C.CODE categoryCode, C.NAME categoryName,PU.WAREHOUSECODE warehouseCode, PU.CODE productUnityCode, PU.NAME productUnityName, PU.STOCK stock, PP.PRICELISTCODE priceListCode, PP.PRICE price FROM PRODUCT P INNER JOIN CATEGORY C ON C.CODE=P.CATEGORYCODE INNER JOIN PRODUCTUNITY PU ON P.CODE = PU.PRODUCTCODE INNER JOIN PRODUCTPRICE PP ON PU.CODE = PP.PRODUCTUNITYCODE AND P.CODE = PP.PRODUCTCODE WHERE P.CODE = ? AND PP.PRICELISTCODE = ? AND PP.CURRENCYCODE = ?",
+					[textCode,presale.priceListCode,presale.currencyCode],function(tx,results){
+
+					if(results.rows.length>0){
+						var product ={
+								code:results.rows.item(0).code,
+								name:results.rows.item(0).name,
+								trademark:results.rows.item(0).trademark,
+								categoryCode:results.rows.item(0).categoryCode,
+								categoryName:results.rows.item(0).categoryName,
+								productUnityCode:results.rows.item(0).productUnityCode,
+								productUnityName:results.rows.item(0).productUnityName,
+								stock:results.rows.item(0).stock,
+								editedPrice:0,
+								discount:0.0,
+								priceListCode:results.rows.item(0).priceListCode,
+								price:results.rows.item(0).price,
+								warehouseCode:results.rows.item(0).warehouseCode
+						};
+						HTML("nombre",product.name);
+						HTML("marca",product.trademark);
+						var unity = ID("unidad");
+						while(unity.hasChildNodes()){
+							unity.removeChild(unity.lastChild);
+						}
+
+						for(var i=0;i<results.rows.length;i++){
+							var opt = document.createElement("option");
+							opt.setAttribute("value", results.rows.item(i).productUnityCode);
+							opt.setAttribute("price", results.rows.item(i).price);
+							opt.setAttribute("stock", results.rows.item(i).stock);
+							opt.appendChild(document.createTextNode(results.rows.item(i).productUnityName));
+							unity.appendChild(opt);
+						}
+
+						HTML("categoria",product.categoryName);
+						SETVALUE("precio",product.price);
+						HTML("stock",product.stock);
+						selectedProduct = product;
+						ID("searchProductContent").style.display="none";
+						ID("productContentDetail").style.display="block";
+						ID("hiddenDIV").style.display="block";
+						ID("btnAceptar").focus();
+					}
+			},errorTransaction);
+		});
+	}
+</script>
+</head>
+<body>
+	<div id="menuHeader">
+		<div id="menuLink">
+				<div id="divMenuContent">
+					<div id="itemHome"><span>MENU</span></div>
+					<div id="itemBack"><span>VOLVER</span></div>
+					<div id="itemFindProduct"><span>BUSCAR</span></div>
+					<div id="itemSale"><span>VENTA</span> </div>
+					<div id="itemExit"><span>SALIR</span></div>
+				</div>
+		</div>
+	</div>
+
+	<form action="resumen.html" method="post">
+		<div style=";border: 1px solid #c0c0c0">
+			<input name="codigo" id="codigo" type="text"   placeholder="producto" style="display:block;width:100%;border:none;border-bottom: 1px #c0c0c0 solid;" autocomplete="off" />
+			<input name="cantidad" id="cantidad"  type="number" placeholder="cantidad" style="display:block;width:100%;border:none;margin: 0px auto;" autocomplete="off" />
+		</div>
+			<input value="AGREGAR" type="button" name="btnAdd" id="btnAdd" style="width:90%; margin: 10px auto;" />
+		</form>
+		<div id="contentResultTable">
+		<table class="resultTable">
+							<thead>
+								<tr>
+									<th>CODIGO</th>
+									<th>NOMBRE</th>
+									<th>UNIDAD</th>
+									<th>PRECIO</th>
+									<th>CANTIDAD</th>
+									<th>DSCTO</th>
+									<th>SUBTOTAL</th>
+									<th>EDITAR</th>
+									<th>QUITAR</th>
+								</tr>
+							</thead>
+							<tbody id="detailTable"></tbody>
+						</table>
+		</div>
+		<div id="hiddenDIV">
+		<div class="contentDetail" id="productContentDetail">
+			<span class="contentTitle">Nombre</span>
+			<span class="contentData" id="nombre"></span>
+			<span class="contentTitle">Unidad</span>
+			<span class="contentData">
+			<select id="unidad">
+			</select>
+			</span>
+			<span class="contentTitle">Precio (moneda)</span>
+			<span class="contentData">
+				<input type="number"  id="precio" class="integer"/>
+			</span>
+			<span class="contentTitle">Descuento (&#37;)</span>
+			<span class="contentData">
+				<input type="number"  id="descuento" value="0" class="integer"/>
+			</span>
+			<span class="contentTitle">Categoria</span>
+			<span class="contentData" id="categoria"></span>
+			<span class="contentTitle">Marca</span>
+			<span class="contentData" id="marca"></span>
+			<span class="contentTitle">Stock</span>
+			<span class="contentData" id="stock"></span>
+			<div style="margin-top:10px;">
+			<input type="button" value="ACEPTAR" id="btnAceptar"  style="width:49%;float:left;" />
+			<input type="button" value="CANCELAR" id="btnCancelar" style="width:49%;float:right;" class="buttonInverse"/>
+			</div>
+		</div>
+		<div id="searchProductContent">
+		<input type="text" placeholder="ingresar descripcion" id="productText" />
+		<div id="showFindedContent" style="overflow:auto;max-height:200px">
+		<table id="productTableResult">
+		</table>
+		</div>
+		</div>
+		<div onclick="this.parentNode.style.display='none';" 
+			style="position:relative;left:100%;top:100%;margin-top: -55px;margin-left:-55px;background-image:url('img/back-left.png');width:48px;height:48px;box-shadow: 2px 2px 5px #999;border-radius:24px;cursor:pointer">
+		</div>
+		</div>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html manifest="cache.mf">
+<head>
+<meta charset="UTF-8">
+<meta name="MobileOptimized" content="width" />
+<meta name="viewport"
+	content="user-scalable=no, width=device-width, initial-scale=1" />
+<link href="style/style.css"
+	rel="stylesheet" />
+	<script type="text/javascript" src="script/script.js"></script>
+	<script type="text/javascript" src="script/db.js"></script>
+<title>Ruta de clientes</title>
+<style type="text/css">
+#hiddenDIV > div{
+	display:block;
+	width:98%;
+	background-color:#FFF;
+	border-radius:5px;
+	border:1px solid #79b800;
+	overflow:hidden;
+}
+#hiddenDIV #result{
+	height:76%;
+	margin: 0px auto;
+}
+#hiddenDIV .search{
+	height:15%;
+	margin: 2% auto;
+}
+#hiddenDIV #result .anotherClient{
+	border-bottom:1px solid #033;
+	width:100%;
+	height:12%;
+}
+#hiddenDIV #result .anotherClient .description{
+	width:80%;
+	float:left;
+	display:inline-block;
+	height:100%;
+}
+#hiddenDIV #result .anotherClient .image{
+	height:100%;
+	width:20%;
+	display:inline-block;
+	float:left;
+}
+#hiddenDIV #result .anotherClient .image img{
+	width:50%;
+	height:75%;
+	display:block;
+	margin:5% auto;
+}
+#hiddenDIV #result .description span{
+	width:98%;
+	height:50%;
+	display:block;
+	font:normal 2vh Arial;
+	white-space:nowrap;
+	overflow:hidden;
+}
+#hiddenDIV #result .description span:FIRST-CHILD{
+	color:#00c6d7;
+	font-weight:bold;
+	line-height:2em;
+}
+#hiddenDIV #result .description span:LAST-CHILD{
+	color:#003245;
+}
+#hiddenDIV .search input[type=text]{
+	width:100%;
+	height:50%;
+	border:none;
+	display:block;
+}
+#hiddenDIV .search input[type=button]{
+	width:50%;
+	height:50%;
+	margin:0;
+	padding:0px;
+	border-radius:0px;
+}
+
+</style>
+<script type="text/javascript">
+function cargaPagina(evt){
+	cargaUsuario(true,null);
+	ID("menuLink").addEventListener("click",animateMenu);
+	ID("itemExit").addEventListener("click",function(){
+		salir();
+	});
+	ID("itemHome").addEventListener("click",function(){
+		browse("menu.html");
+	});
+	ID("itemBack").addEventListener("click",function(){
+		browse("menu.html");
+	});
+	ID("itemRefresh").addEventListener("click",function(){
+		window.location.reload(false);//false : from caché
+	});
+	ID("btnCancel").addEventListener("click",function(){
+		ID("hiddenDIV").style.display="none";
+		limpiar(ID("result"));
+	});
+	ID("btnSearch").addEventListener("click",function(){
+		limpiar(ID("result"));
+		var filter = VALUE("txtSearch");
+		sendAsyncRequest("phone", "POST", "type=FIND_ANOTHER_CLIENT&filter="
+				+filter+"&userCode="+ user.code 
+				+"&companyCode="+user.companyCode+
+				"&warehouseCode="+user.warehouseCode, 
+				showAnotherClients);
+	});
+	ID("itemRouteOut").addEventListener("click",function(){
+		ID("hiddenDIV").style.display="block";
+	});
+	ID("itemSavedSales").addEventListener("click",function(){
+		browse("saved.html");
+	});
+
+	ID("clientName").addEventListener("input",function(e){
+		var clients = document.querySelectorAll(".itineraryItem");
+		var val = this.value.toLowerCase();
+		for(var i=0;i<clients.length;i++){
+			var client = clients[i];
+			var clientName = client.querySelector(".clientName").innerHTML.toLowerCase();
+			var clientCode = client.getAttribute("client").toLowerCase();
+			client.style.display=(clientName.indexOf(val)!=-1 || clientCode.startsWith(val))  ?"block":"none";
+		}
+	});
+	
+	dbSales.transaction(function(tx){
+		var today = new Date().getDay().toString();
+		tx.executeSql("SELECT C.CODE clientCode,C.NAME clientName,CA.CODE clientAddressCode,CA.NAME clientAddressName,I.STATE state, I.CODE code " +
+				"FROM ITINERARY I INNER JOIN CLIENT C ON I.CLIENTCODE=C.CODE " +
+				"INNER JOIN CLIENTADDRESS CA ON C.CODE=CA.CLIENTCODE AND CA.CODE=I.CLIENTADDRESSCODE " +
+				"WHERE I.DAY = ?",
+				[today],
+				function(tx,results){
+					if(results.rows.length>0){
+						for(var x=0;x<results.rows.length;x++){
+							var object = results.rows.item(x);
+							var route = document.createElement("div");
+							route.setAttribute("itinerary",object.code);
+							route.setAttribute("client",object.clientCode);
+							route.setAttribute("address",object.clientAddressCode);
+							route.setAttribute("class","itineraryItem");
+							route.setAttribute("onclick","setValues(this);");
+							var nodo = document.createElement("div");
+							if(object.state=="ACT"){
+								nodo.setAttribute("class","itineraryClient");
+							}else if(object.state=="SALE"){
+								nodo.setAttribute("class","itineraryClientV");
+							}else if(object.state=="SALE|SERVER"){
+								nodo.setAttribute("class","itineraryClientVS");
+							}else if(object.state=="NOSALE"){
+								nodo.setAttribute("class","itineraryClientN");
+							}else if(object.state=="NOSALE|SERVER"){
+								nodo.setAttribute("class","itineraryClientNS");
+							}else{
+								console.log(object.state);
+							}
+							
+							route.appendChild(nodo);
+							
+							var elem = document.createElement("div");
+							elem.setAttribute("class","itineraryContent");
+							nodo = document.createElement("span");
+							nodo.setAttribute("class","clientName");
+							nodo.appendChild(document.createTextNode(object.clientName));
+							elem.appendChild(nodo);
+							
+							nodo = document.createElement("span");
+							nodo.setAttribute("class","clientAddress");
+							nodo.appendChild(document.createTextNode(object.clientAddressName));
+							elem.appendChild(nodo);
+							route.appendChild(elem);
+							document.body.appendChild(route);
+						}
+					}
+			
+		},errorTransaction);
+	});
+	
+}
+function limpiar(obj){
+	while(obj.hasChildNodes()){
+		obj.removeChild(obj.lastChild);
+	}
+}
+function showAnotherClients(text){
+	var xml = responseXML(text);
+	var clients = xml.getElementsByTagName("client");
+	if(clients.length==0){
+		warningMessage("No se encontraron clientes bajo el criterio ingresado");
+		ID("txtSearch").focus();
+		SETVALUE("txtSearch","");
+		return;
+	}
+	var result = ID("result");
+	var received = [];
+	for(var i = 0; i < clients.length; i++){
+		var client = clients[i];
+		var object = {
+				offRoute:true,
+				clientCode:client.getElementsByTagName("code")[0].firstChild.nodeValue,
+				clientName:client.getElementsByTagName("name")[0].firstChild.nodeValue,
+				state:client.getElementsByTagName("state")[0].firstChild.nodeValue,
+				itineraryCode:null,
+				ruc:client.getElementsByTagName("ruc")[0].firstChild.nodeValue,
+				phone:client.getElementsByTagName("phone")[0].firstChild.nodeValue,
+				clientType:{
+					code:client.getElementsByTagName("clienttype")[0].getElementsByTagName("code")[0].firstChild.nodeValue,
+					name:client.getElementsByTagName("clienttype")[0].getElementsByTagName("name")[0].firstChild.nodeValue
+				},
+				clientAddresses:[],
+				saleModes:[],
+				priceLists:[],
+		};
+		var lista = client.getElementsByTagName("clientaddress");
+		for(var z=0;z<lista.length;z++){
+			var ca = lista[z];
+			object.clientAddresses.push({
+				code:ca.getElementsByTagName("code")[0].firstChild.nodeValue,
+				name:ca.getElementsByTagName("name")[0].firstChild.nodeValue,
+				type:ca.getElementsByTagName("type")[0].firstChild.nodeValue
+			});
+		}
+
+		lista = client.getElementsByTagName("salemode");
+		for(var z=0;z<lista.length;z++){
+			var ca = lista[z];
+			object.saleModes.push({
+				code:ca.getElementsByTagName("code")[0].firstChild.nodeValue,
+				name:ca.getElementsByTagName("name")[0].firstChild.nodeValue,
+				type:ca.getElementsByTagName("type")[0].firstChild.nodeValue
+			});
+		}
+		lista = client.getElementsByTagName("pricelist");
+		for(var z=0;z<lista.length;z++){
+			var ca = lista[z];
+			object.priceLists.push({
+				code:ca.getElementsByTagName("code")[0].firstChild.nodeValue,
+				name:ca.getElementsByTagName("name")[0].firstChild.nodeValue,
+			});
+		}
+		received.push(object);
+		
+		var div = document.createElement("div");
+		var elem = document.createElement("div");
+		var temp = document.createElement("img");
+		div.setAttribute("class","anotherClient");
+		div.setAttribute("code", object.clientCode);
+		div.addEventListener("click",function(evt){
+			var lista = JSON.parse(localStorage.received);
+			for(var x=0;x<lista.length;x++){
+				if(this.getAttribute("code")==lista[x].clientCode){
+					lista[x].itineraryCode=Date.now()+"";
+					localStorage.setItem("presale",JSON.stringify(lista[x]));
+					localStorage.removeItem("received");
+					break;
+				}
+			}
+			
+			browse("detalleCliente.html");
+		});
+		elem.setAttribute("class","image");
+		temp.setAttribute("src","img/otro.png");
+		elem.appendChild(temp);
+		div.appendChild(elem);
+		elem=document.createElement("div");
+		elem.setAttribute("class","description");
+		temp=document.createElement("span");
+		temp.appendChild(document.createTextNode(object.clientCode + " : "+object.clientName));
+		elem.appendChild(temp);
+		temp = document.createElement("span");
+		temp.appendChild(document.createTextNode(object.clientAddresses[0].name));
+		elem.appendChild(temp);
+
+		div.appendChild(elem);
+		result.appendChild(div);
+		
+		localStorage.setItem("received",JSON.stringify(received));
+	}
+}
+</script>
+</head>
+<body>
+	<div id="menuHeader">
+		<div id="menuLink">
+			<div id="divMenuContent">
+				<div id="itemHome"><span>MENU</span> </div>
+				<div id="itemBack"><span>VOLVER</span> </div>
+				<div id="itemRouteOut"><span>FUERA DE RUTA</span></div>
+				<div id="itemSavedSales"><span>GUARDADOS</span> </div>
+				<div id="itemRefresh"><span>REFRESCAR</span></div>
+				<div id="itemExit"><span>SALIR</span> </div>
+			</div>
+		</div>
+	</div>
+	<input type="text" id="clientName" name="txtNombre" placeholder="filtrar cliente" style="display: block;margin: 0 auto;border:none;width:95%;background-image:url('img/filter.png');background-repeat:no-repeat;background-position:right center;color:#909090;font-weight:bold;" />
+	<form action="detalleCliente.html" method="post">
+		<input type="hidden" name="clientCode" value=""/>
+		<input type="hidden" name="clientAddressCode" value=""/>
+	</form>
+
+	<div id="hiddenDIV" style="z-index:999">
+		<div class="search">
+			<input type="text" id="txtSearch" placeholder="FUERA DE RUTA"/>
+			<input type="button" id="btnSearch" value="BUSCAR" style="float:left;">
+			<input type="button" id="btnCancel"  class="buttonInverse" value="CANCELAR" style="float:right;">
+		</div>
+		<div id="result"></div>
+	</div>
+</body>
+</html>

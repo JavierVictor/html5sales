@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html manifest="cache.mf">
+<head>
+<meta charset="UTF-8">
+<meta name="MobileOptimized" content="width" />
+<meta name="viewport"
+	content="user-scalable=no, width=device-width, initial-scale=1" />
+<link href="style/style.css"
+	rel="stylesheet" />
+<script type="text/javascript" src="script/script.js"></script>
+<script type="text/javascript" src="script/db.js"></script>
+<title>Ruta de clientes</title>
+
+<script type="text/javascript">
+var saleCode = new Date().getTime() + "";
+function cargaPagina(){
+	ID("menuLink").addEventListener("click",animateMenu);
+	ID("submit").addEventListener("click",saveSale);
+	ID("itemExit").addEventListener("click",function(){
+		salir();
+	});
+	ID("itemHome").addEventListener("click",function(){
+		browse("menu.html");
+	});
+	ID("itemBack").addEventListener("click",function(){
+		if(confirm("Si regresa se perdera informacion ¿desea volver de todos modos?"))
+			browse("pedido.html");
+	});
+	
+	cargaUsuario(true,loadData);
+}
+function loadData(){
+	dbSales.transaction(function(tx){
+		var presale = JSON.parse(localStorage.presale);
+		var select = null;
+		tx.executeSql("SELECT SM.CODE code,SM.NAME name FROM SALEMODE SM INNER JOIN SALEMODECLIENT SMC ON SM.CODE=SMC.SALEMODECODE AND SMC.CLIENTCODE = ?",
+				[presale.clientCode],
+				function(tx,results){
+					if(results.rows.length>0){
+						select = document.forms[0].saleModeCode;
+						for(var x=0;x<results.rows.length;x++){
+							var opt = document.createElement("option");
+							opt.setAttribute("value",results.rows.item(x).code);
+							opt.appendChild(document.createTextNode(results.rows.item(x).name));
+							select.appendChild(opt);
+						}
+					}
+		});
+		
+		tx.executeSql("SELECT CA.CODE code, CA.NAME name FROM CLIENTADDRESS CA WHERE CA.CLIENTCODE = ?",[presale.clientCode],function(tx,results){
+			if(results.rows.length>0){
+				select = document.forms[0].deliveryClientAddressCode;
+				for(var x=0;x<results.rows.length;x++){
+					var opt = document.createElement("option");
+					opt.setAttribute("value",results.rows.item(x).code);
+					if(results.rows.item(x).code==presale.clientAddressCode){
+						opt.setAttribute("selected","selected");
+					}
+					opt.appendChild(document.createTextNode(results.rows.item(x).name));
+					select.appendChild(opt);
+				}
+			}
+		});
+		
+		tx.executeSql("SELECT SUM(SUBTOTAL) total FROM PRESALE WHERE CLIENTCODE = ? AND CLIENTADDRESSCODE = ?", [presale.clientCode,presale.clientAddressCode],
+				function(tx,results){
+					if(results.rows.length>0){
+						HTML("total",results.rows.item(0).total.toFixed(3));
+					}
+		},errorTransaction);
+		
+		tx.executeSql("SELECT NAME FROM CLIENT WHERE CODE = ?", [presale.clientCode],
+				function(tx,results){
+					if(results.rows.length>0){
+						HTML("clientName",results.rows.item(0).NAME);
+					}
+		});
+		
+		HTML("clientCode",presale.clientCode);
+		HTML("currencyCode",presale.currencyCode);
+		SETVALUE("clientAddressCode",presale.clientAddressCode);
+	});
+	var hoy = new Date();
+	var dia = hoy.getDate();
+	var mes = hoy.getMonth()+1;
+	if(dia<10)dia="0"+dia;
+	if(mes<10)mes="0"+mes;
+	document.forms[0].deliveryDate.value=dia+"/"+mes+"/"+hoy.getFullYear();
+}
+function saveSale(evt){
+	dbSales.transaction(function(tx){
+		var presale = JSON.parse(localStorage.presale);
+		
+		tx.executeSql("DELETE FROM PRESALE WHERE CLIENTCODE = ? AND CLIENTADDRESSCODE = ?",[presale.clientCode,presale.clientAddressCode]);
+		tx.executeSql("INSERT INTO SALE VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+				[saleCode,
+				 presale.itineraryCode,
+				 user.companyCode,
+				 presale.clientCode,
+				 presale.clientAddressCode,
+				 user.code,
+				 presale.saleTypeCode,
+				 presale.currencyCode,
+				 document.forms[0].saleModeCode.value,
+				 presale.noSaleCode,
+				 document.forms[0].comment.value,
+				 presale.priceListCode,
+				 document.forms[0].deliveryDate.value,
+				 ubication.latitude,
+				 ubication.longitude,
+				 "SAVED",
+				 toStringDate(new Date(),FULL_DATE)],
+				 errorTransaction, errorTransaction);
+
+		var saleDetail = JSON.parse(localStorage.saleDetail);
+		if(saleDetail.length>0){
+			for(var i=0;i<saleDetail.length;i++){
+				var temp = saleDetail[i];
+				//(SALECODE,ITEM,PRODUCTCODE,WAREHOUSECODE,PRODUCTUNITYCODE,QUANTITY,PRICE,EDITEDPRICE,DISCOUNT
+				tx.executeSql("INSERT INTO SALEDETAIL VALUES(?,?,?,?,?,?,?,?,?,?)",
+						[saleCode,
+						 i+1,
+						 temp.code,
+						 user.warehouseCode,
+						 temp.productUnityCode,
+						 temp.quantity,
+						 temp.price,
+						 temp.editedPrice,
+						 temp.discount,
+						 temp.subTotal],
+						 errorTransaction,errorTransaction);
+			}
+		}
+		
+		tx.executeSql("UPDATE ITINERARY SET STATE = 'SALE' WHERE CODE=? AND CLIENTCODE = ? AND CLIENTADDRESSCODE=?",
+				[presale.itineraryCode,
+				 presale.clientCode,
+				 presale.clientAddressCode]);
+	},errorTransaction,
+	function(){
+		localStorage.clear();
+		if(confirm("Desea enviar el pedido ahora"))
+			sendToServer();
+		else
+			browse("ruta.html");
+		
+	});
+}
+
+</script>
+</head>
+<body>
+	<div id="menuHeader">
+		<div id="menuLink">
+			<div id="divMenuContent">
+				<div id="itemHome"><span>MENU</span></div>
+				<div id="itemBack"><span>VOLVER</span></div>
+				<div id="itemExit"><span>SALIR</span></div>
+			</div>
+		</div>
+	</div>
+<form action="sale" method="post">
+<div class="contentDetail">
+<input type="hidden" name="type" value="saveSale"/>
+<input type="hidden" name="clientAddressCode" id="clientAddressCode" value=""/>
+
+<span class="contentTitle">Codigo Cliente</span>
+<span class="contentData" id="clientCode"></span>
+<span class="contentTitle">Razon Social</span>
+<span class="contentData" id="clientName"></span>
+<span class="contentTitle">Direccion de Entrega</span>
+<span class="contentData"><select name="deliveryClientAddressCode" style="width:100%;">
+</select></span>
+<span class="contentTitle">Moneda</span>
+<span class="contentData" id="currencyCode"></span>
+<span class="contentTitle">Total</span>
+<span class="contentData" id="total"></span>
+<span class="contentTitle">Condicion de Venta</span>
+<span class="contentData"><select name="saleModeCode" style="width:100%;">
+</select></span>
+<span class="contentTitle">Fecha de entrega</span>
+<span class="contentData"><input type="text" name="deliveryDate" placeholder="dd/mm/aaaa" style="width:100%;"/></span>
+<span class="contentTitle">Observaciones</span>
+<span class="contentData"><input type="text" name="comment" style="width:100%;"/></span>
+<input type="button" value="GUARDAR PEDIDO" id="submit" style="margin-top:10px;background-image: url('img/save.png');background-repeat:no-repeat;background-position:15% center;" />
+</div>
+</form>
+<div class="background">
+</div>
+</body>
+</html>

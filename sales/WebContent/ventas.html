@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html manifest="cache.mf">
+<head>
+<meta charset="UTF-8">
+<meta name="MobileOptimized" content="width" />
+<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1" />
+<link href="style/style.css" rel="stylesheet"/>
+<script type="text/javascript" src="script/script.js"></script>
+<script type="text/javascript" src="script/db.js"></script>
+<title>Ventas</title>
+<script type="text/javascript">
+function cargaPagina(evt){
+	ID("menuLink").addEventListener("click",animateMenu);
+	ID("itemExit").addEventListener("click",function(){
+		salir();
+	});
+	ID("itemBack").addEventListener("click",function(){
+		browse("menu.html");
+	});
+	ID("itemHome").addEventListener("click",function(){
+		browse("menu.html");
+	});
+	
+	cargaUsuario(true,function(){
+		document.forms[0].userCode.value=user.code;
+		document.forms[0].companyCode.value=user.companyCode;
+		document.forms[0].warehouseCode.value=user.warehouseCode;
+		ID("findRoute").addEventListener("click",function(){
+			var itinerary = document.forms[0].txtItinerary.value;
+			var date = document.forms[0].txtDate.value;
+			if(itinerary.trim().length!=0||date.trim().length!=0){
+				document.forms[0].submit();
+			}else{
+				browse("ruta.html");
+			}
+		});
+	});
+	
+	
+}
+window.addEventListener("load",cargaPagina);
+</script>
+</head>
+<body>
+	<div id="menuHeader">
+		<div id="menuLink">
+				<div id="divMenuContent">
+					<div id="itemHome"><span>MENU</span></div>
+					<div id="itemBack"><span>VOLVER</span></div>
+					<div id="itemExit"><span>SALIR</span></div>
+				</div>
+		</div>
+	</div>
+
+	<div style="width:90%;border-radius:10px;border: 1px #c0c0c0 solid;overflow:hidden;margin: 5% auto;display:block;box-shadow: 2px 2px 5px #999;">
+		<form action="itinerary" method="post">
+			<input type="hidden" name="userCode"/>
+			<input type="hidden" name="warehouseCode"/>
+			<input type="hidden" name="companyCode"/>
+			<input type="hidden" name="type" value="find" />
+			<input type="text" name="txtItinerary" placeholder="Codigo de ruta" style="display:block;width:100%;border:none;border-bottom: 1px #c0c0c0 solid;"/>
+			<input type="text" name="txtDate" placeholder="dd/mm/aaaa" maxlength="10" style="display:block;width:100%;border:none;border-bottom: 1px #c0c0c0 solid;" />
+			<input type="button" id="findRoute" value="BUSCAR" style="display:block;width:100%;border:none;" /> 
+		</form>
+	</div>
+</body>
+</html>

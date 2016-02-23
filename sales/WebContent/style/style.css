@@ -1,0 +1,599 @@
+@font-face {
+	font-family: 'Movistar Headline';
+	font-weight: bold;
+	src: url('../font/movistarheadlinebold-webfont.ttf');
+}
+@font-face {
+	font-family: 'Movistar Headline';
+	font-weight: normal;
+	src: url('../font/MovistarHeadline-Regular.ttf');
+}
+@font-face {
+	font-family: 'Movistar Text';
+	src: url('../font/MovistarText-Regular.ttf');
+}
+@font-face {
+	font-family: 'Movistar Text';
+	font-weight: bold;
+	src: url('../font/MovistarText-Bold.ttf');
+}
+@font-face {
+	font-family: 'Movistar Text';
+	font-style: italic;
+	src: url('../font/MovistarText-Italic.ttf');
+}
+* {
+	font-family: 'Movistar Text', Tahoma, Calibri, sans-serif;
+}
+html,body {
+	height: 100%;
+	width: 100%;
+}
+body,div,header,table,tr,td,th {
+	padding: 0px;
+	border: 0px;
+	margin: 0px;
+	border-collapse: collapse;
+	border-spacing: 0px;
+}
+.authContainer{
+	top: 20%;
+	width: 90%;
+	margin: 0px auto;
+	border: 1px #c0c0c0 solid;
+	border-radius: 10px;
+	overflow: hidden;
+	position: relative;
+	box-shadow: 2px 2px 5px #999;
+}
+.authContainer input[type=number],
+.authContainer input[type=password]{
+	width: 100%;
+	border: none;
+	border-bottom: 1px #c0c0c0 solid;
+}
+#validateLogin{
+	height: 40px;
+	width: 90%;
+	box-shadow: 2px 2px 5px #999;
+	margin: 0px auto;
+	position: relative;
+	top:20%;
+}
+input[type=submit],
+input[type=reset],
+input[type=button],
+button,
+.button{
+	background-color: #79b800;
+    color: #FFF;
+    border: 1px solid #79b800;
+    height: 40px;
+	text-align: center;
+	padding: 0px;
+	font-size: 16px;
+	font-weight: bold;
+	outline: none;
+	display: block;
+	border-radius:5px;
+}
+input[type=submit]:HOVER,
+input[type=reset]:HOVER,
+input[type=button]:HOVER,
+button:HOVER
+.button:HOVER{
+	background-color: #FFF;
+    color: #79b800;
+}
+input[type=submit].buttonInverse,
+input[type=reset].buttonInverse,
+input[type=button].buttonInverse,
+.buttonInverse{
+	background-color: #FFF;
+    color: #79b800;
+    border: 1px solid #79b800;
+}
+input[type=submit].buttonInverse:HOVER,
+input[type=reset].buttonInverse:HOVER,
+input[type=button].buttonInverse:HOVER,
+.buttonInverse:HOVER{
+	background-color: #79b800;
+    color: #FFF;
+}
+#menuHeader{
+	background-color: #003245;
+	background-image:url('../img/logo.png');
+	background-position:left center;
+	background-repeat: no-repeat;
+	width: 100%;
+	height: 10%;
+	display: block;
+}
+#menuHeader #menuLink{
+	display: inline-block;
+	width: 10%;
+	height: 100%;
+	float:right;
+	color: rgb(95, 175, 199);
+	background-color: transparent;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-image: url('../img/click.png');
+}
+#menuHeader #menuLink #divMenuContent{
+	position:absolute;
+	top:10%;
+	width:50%;
+	left:50%;
+	height:90%;
+	z-index: 100;
+	background-color: #f0f5f5;
+	display: none;
+	outline: 1px #d2e0e3 solid;
+}
+#menuHeader #menuLink div div{
+	display: inline-block;
+	width: 100%;
+	height: 40px;
+	float:left;
+	background-color: transparent;
+	background-position: 5px;
+	background-repeat: no-repeat;
+	border-top: 2px #d2e0e3 solid;
+}
+#menuHeader #menuLink div div span{
+	color: #003245;
+	font-weight: bold;
+	margin-left: 40px;
+	text-transform: uppercase;
+	height:100%;
+	line-height: 40px;
+}
+#menuHeader>div:HOVER,#menuHeader>div:ACTIVE {
+	background-color: #FFF;
+}
+#menuHeader #itemExit {
+	background-image: url(../img/exit.png);
+}
+#menuHeader #itemHome {
+	background-image: url(../img/home.png);
+}
+#menuHeader #itemBack {
+	background-image: url(../img/back.png);
+}
+#menuHeader #itemRouteOut {
+	background-image: url(../img/route-out.png);
+}
+#menuHeader #itemRefresh {
+	background-image: url(../img/refresh.png);
+}
+#menuHeader #itemDownload {
+	background-image: url(../img/download.png);
+}
+#menuHeader #itemUpload {
+	background-image: url(../img/upload.png);
+}
+#menuHeader #itemSavedSales{
+	background-image: url(../img/case.png);
+}
+#menuHeader #itemSale{
+	background-image: url(../img/makeSale.png);
+}
+#menuHeader #itemFindProduct{
+	background-image: url(../img/findProduct.png);
+}
+input[type=text],
+input[type=number],
+input[type=password],
+input[type=datetime],
+select{
+	height: 40px;
+	text-align: center;
+	padding: 0px;
+	background-color: #FFF;
+	color: #003245;
+	font-size: 16px;
+	font-weight: bold;
+	outline: none;
+}
+#loadBackground{
+	background-image:url('../img/loading.gif');
+	background-repeat:no-repeat;
+	background-position:center;
+}
+div.background {
+	display:none;
+	position:fixed;
+	top:0px;
+	left:0px;
+	height:100%;
+	width:100%;
+	background-color:rgba(245,245,245,0.8);
+	z-index: 999999;
+}
+a {
+	text-decoration: none;
+	background: none;
+}
+.menuTable {
+	width: 100%;
+	height: 90%;
+	overflow: hidden;
+}
+.menuTable input[type=password],.menuTable input[type=number],.menuTable input[type=text]{
+	margin: 0px auto;
+	width: 80%;
+	display: block;
+	text-align: center;
+}
+.itineraryItem {
+	background-color: #FFF;
+	height: 60px;
+	border-bottom: 1px #79b800 solid;
+	border-top: 1px #79b800 solid;
+	margin-top: 5px;
+}
+.itineraryItem .itineraryContent{
+	width:79%;
+	height:auto;
+	float:left;
+	position:relative;
+	top:15%;
+}
+.itineraryItem .itineraryContent span {
+	text-indent: 1%;
+	background-color: transparent;
+	width: 100%;
+	height:50%;
+	float: left;
+	white-space: nowrap;
+	overflow: hidden;
+}
+/*.itineraryItem .itineraryClient,
+.itineraryItem .itineraryClientV,
+.itineraryItem .itineraryClientN,
+.itineraryItem .itineraryClientS*/
+.itineraryItem div:FIRST-CHILD{
+	background-color: transparent;
+	background-repeat: no-repeat;
+	background-position: center;
+	height: 100%;
+	width: 20%;
+	display: block;
+	float: left;
+	border-right: 1px #79b800 solid;
+}
+.itineraryItem .itineraryClient {
+	background-image: url(../img/client.png);
+}
+.itineraryItem .itineraryClientV {
+	background-image: url(../img/salesave.png);
+}
+.itineraryItem .itineraryClientVS {
+	background-image: url(../img/saleserver.png);
+}
+.itineraryItem .itineraryClientN {
+	background-image: url(../img/nosalesave.png);
+}
+.itineraryItem .itineraryClientNS {
+	background-image: url(../img/nosaleserver.png);
+}
+fieldset {
+	-webkit-border-radius: 10px;
+	-moz-border-radius: 10px;
+	border-radius: 10px;
+	width: 90%;
+	margin: 0px auto;
+	background-color: #FFF;
+	color: #000;
+}
+fieldset * {
+	background-color: #FFF;
+	color: #000;
+}
+fieldset span {
+	background-color: transparent;
+	display: block;
+	width: 100%;
+}
+.itineraryItem .clientName {
+	text-transform: uppercase;
+	font-weight: bold;
+	color: #003245;
+}
+.itineraryItem .clientAddress {
+	text-transform: lowercase;
+	font-weight: lighter;
+	color: #006490;
+	overflow: hidden;
+}
+.divButton {
+	width: 100%;
+	height: 100%;
+	text-align: center;
+	background-color: #FFF;
+	color: #00517a;
+}
+.divButton a {
+	font-weight: bold;
+	margin: 0 auto;
+	width: 100%;
+	height: 100%;
+	color: #00517a;
+	display:block;
+	vertical-align: middle;	
+}
+.divButton a span{
+	vertical-align: middle;
+	display: inline-block;
+}
+.divButton:HOVER a{
+	color: #FFF;
+}
+.divButton:HOVER {
+	border-color: #FFF;
+	background-color: #000;
+}
+.contentDetail {
+	width: 90%;
+	border: 1px solid #79b800;
+	margin: 5% auto;
+	-webkit-border-radius: 10px;
+	-moz-border-radius: 10px;
+	border-radius: 10px;
+	-webkit-box-shadow: 2px 2px 5px #ccc;
+	-moz-box-shadow: 2px 2px 5px #ccc;
+	box-shadow: 2px 2px 5px #ccc;
+	overflow: hidden;
+	padding: 2% 0% 2% 0%;
+}
+.contentDetail > * {
+	background: transparent;
+	width: 90%;
+	display: block;
+	margin: 0px auto;
+}
+.contentDetail .contentData{
+	color: #006490;
+}
+.contentDetail .contentData input , .contentDetail .contentData select{
+	width: 50%;
+	height: 100%;
+	color : #006490;
+}
+.contentDetail .contentTitle{
+	color: #003245;
+	font-weight: bold;
+}
+.contentDetail label{
+	color: #003245;
+	font-weight: bold;
+}
+.menuElement{
+	width: 39%;
+	height: 36%;
+	display: block;
+	float: left;
+	background-color: #f0f3f1;
+	background-position: 50% 25%;
+	background-repeat: no-repeat;
+	margin: 4% 5%;
+	border:1px solid #ccc;
+	border-radius:5px;
+}
+.menuElement a{
+	font-weight: bold;
+	margin: auto;
+	width: 100%;
+	height: 100%;
+	color: #005c84;
+	display:block;
+	vertical-align: middle;
+	text-align: center;
+}
+.menuElement a span{
+	position:relative;
+	top:60%; 
+}
+.menuElement:HOVER{
+	background-color: #F0F0F0;
+}
+.menuElement:ACTIVE{
+	background-color: #AAF;
+}
+.menuElement.sale{
+	background-image: url('../img/cart.png');
+}
+.menuElement.search{
+	background-image: url('../img/search.png');
+}
+.menuElement.synchro{
+	background-image: url('../img/synchro.png');
+}
+.menuElement.report{
+	background-image: url('../img/report.png');
+}
+.menuElement.message{
+	background-image: url('../img/message.png');
+}
+.menuElement.product{
+	background-image: url('../img/product.png');
+}
+.menuElement.client{
+	background-image: url('../img/clients.png');
+}
+#contentResultTable{
+	width:90%;
+	height:50%;
+	border-radius:10px;
+	border:1px #c0c0c0 solid;
+	overflow:auto;
+	margin:0 auto;
+	display:block;
+	box-shadow: 2px 2px 5px #999;
+}
+#contentResultTable .resultTable{
+	margin:0 auto;
+	width:100%;
+}
+
+#contentResultTable .resultTable thead tr th{
+	min-width: 70px;
+	font-weight: bold;
+	border-right:1px solid #007486;
+	border-bottom:1px solid #007486;
+	padding-left: 5px;
+	padding-right: 5px;
+	background-color: #d2e0e3 ;
+	color: #007486;
+}
+#contentResultTable .resultTable tbody tr{
+	border-bottom:1px  solid #c0c0c0;
+	height: 30px;
+}
+#contentResultTable .resultTable tbody tr td{
+	border-right:1px  solid #c0c0c0;
+	width: auto;
+	white-space: nowrap;
+	text-align: center;
+	padding-left: 5px;
+	padding-right: 5px;
+	color: #007486;
+	font-weight: normal;
+}
+#contentResultTable .resultTable tbody tr td.edit{
+	background-image:url('../img/edit.png');
+	background-position: center;
+	background-repeat:no-repeat;
+}
+#contentResultTable .resultTable tbody tr td.delete{
+	background-image:url('../img/delete.png');
+	background-position: center;
+	background-repeat:no-repeat;
+}
+div#hiddenDIV{
+display:none;
+position:fixed;
+top:10%;
+left:0%;
+width:100%;
+height:90%;
+background-color:rgb(240,240,240);
+z-index: 999;
+}
+div#hiddenDIV div.contentDetail{
+	position:fixed;
+	top:15%;
+	left:2.5%;
+	width:95%;
+	display:block;
+	background-color:#fdfdfd;
+	border:1px #c0c0c0 solid;
+	border-radius:10px;
+}
+#searchProductContent{
+	overflow:hidden;
+	position:fixed;
+	top:15%;
+	left:2.5%;
+	width:95%;
+	display:block;
+	background-color:#FFF;
+	border:1px #79b800 solid;
+	border-radius:10px;
+}
+#searchProductContent #productText{
+	width:100%;
+	border:none;
+	border-bottom:1px solid #79b800;
+}
+#searchProductContent #productTableResult{
+	width:100%;
+	color:#FFF
+}
+#searchProductContent #productTableResult > tr{
+	border-bottom:1px #D5EEF3  solid;
+}
+#searchProductContent #productTableResult > tr:LAST-CHILD{
+	border-bottom:none;
+}
+#searchProductContent #productTableResult table{
+	width:100%;
+}
+#searchProductContent #productTableResult table tr{
+	color: #003245;
+}
+#searchProductContent #productTableResult table tr td{
+	text-indent: 5px;
+}
+#searchProductContent #productTableResult table tr:LAST-CHILD{
+	background-color: #fdfdfd;
+}
+#searchProductContent #productTableResult table tr:LAST-CHILD td{
+	width:100%;
+}
+#searchProductContent #productTableResult table tr:FIRST-CHILD {
+	background-color:#d2e0e3 ;
+}
+#searchProductContent #productTableResult table tr:FIRST-CHILD td{
+	width:25%;
+}
+
+div.background section.messageContainer{
+	position:relative;
+	width:90%;
+	height:25%;
+	border:1px solid #003245;
+	border-radius:5px;
+	top:37.5%;
+	left:5%;
+	overflow:hidden;
+}
+div.background section.messageContainer .messageTitle{
+	width:100%;
+	height:20%;
+	background-color:#2D3334;
+	color:#FFF;
+	font-weight:bold;
+	text-align:center;
+	line-height:2em;
+}
+div.background section.messageContainer .messageContent{
+display:table;
+width:100%;
+height:60%;
+background-color:#FFF;
+text-align:center;
+}
+div.background section.messageContainer .messageContent .messageData{
+	width:70%;
+	height:100%;
+	display:table-cell;
+	vertical-align:middle;
+}
+div.background section.messageContainer .messageContent .messageIcon{
+	width:30%;
+	height:100%;
+	display:table-cell;
+	vertical-align:middle;
+	background-repeat: no-repeat;
+	background-position: center center;
+	background-color: transparent;
+}
+div.background section.messageContainer .messageFooter{
+	width:100%;
+	height:20%;
+	background-color:#FFF;
+	text-align:center;
+}
+div.background section.messageContainer .messageFooter .messageButton{
+	position:relative;
+	top:10%;
+	left:37.5%;
+	 width:25%;
+	 height:80%;
+	 background-color:#79b800;
+	 color:#FFF;
+	 font-weight:bold;
+	 text-align:center;
+}

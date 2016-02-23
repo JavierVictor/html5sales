@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html manifest="cache.mf">
+<head>
+<meta charset="UTF-8">
+<meta name="MobileOptimized" content="width" />
+<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1" />
+<link href="style/style.css" rel="stylesheet"/>
+<title>Consultas</title>
+<script type="text/javascript" src="script/script.js"></script>
+<script type="text/javascript" src="script/db.js"></script>
+<script type="text/javascript">
+function getALLIN(text){
+	HTML("statusText","ELIMINANDO DATOS DE USUARIO");
+	deleteUserData(function(){
+	console.log(text);
+	var xml = responseXML(text);
+	var categories = xml.getElementsByTagName("categories")[0].getElementsByTagName("category");
+	if(categories.length>0){
+		dbSales.transaction(function(tx){
+			//tx.executeSql("DELETE FROM CATEGORY");
+			HTML("statusText","RECIBIENDO DATOS DE CATEGORIAS");
+		for(var i=0;i<categories.length;i++){
+			
+			tx.executeSql("INSERT INTO CATEGORY VALUES(?,?,?,?)",
+					[user.companyCode,
+					 xmlTagNodeValue(categories[i], "code"),
+					 xmlTagNodeValue(categories[i], "name"),
+			         null],function(){},function(a,b){console.log(a);console.log(b);});
+		}
+		});
+		
+	}
+	
+	var saleModes = xml.getElementsByTagName("salemodes")[0].getElementsByTagName("salemode");
+	if(saleModes.length>0){
+		dbSales.transaction(function(tx){
+			//tx.executeSql("DELETE FROM SALEMODE");
+		HTML("statusText","RECIBIENDO DATOS DE CONDICIONES DE VENTA");
+		for(var i=0;i<saleModes.length;i++){
+			tx.executeSql("INSERT INTO SALEMODE VALUES(?,?,?,?)",
+					[user.companyCode,
+					 xmlTagNodeValue(saleModes[i], "code"),
+					 xmlTagNodeValue(saleModes[i], "name"),
+					 xmlTagNodeValue(saleModes[i], "type")],
+			         function(){},function(a,b){console.log(a);console.log(b);});
+		}
+		});
+		
+	}
+	
+	var nosales = xml.getElementsByTagName("nosales")[0].getElementsByTagName("nosale");
+	if(nosales.length>0){
+		dbSales.transaction(function(tx){
+			//tx.executeSql("DELETE FROM NOSALE");
+		HTML("statusText","RECIBIENDO DATOS DE MOTIVOS NO VENTA");
+		for(var i=0;i<nosales.length;i++){
+			tx.executeSql("INSERT INTO NOSALE VALUES(?,?,?)",
+					[user.companyCode,
+					 xmlTagNodeValue(nosales[i], "code"),
+					 xmlTagNodeValue(nosales[i], "name")],
+					 function(){},function(a,b){console.log(a);console.log(b);});
+		}
+		});
+		
+	}
+	var currencies = xml.getElementsByTagName("currencies")[0].getElementsByTagName("currency");
+	if(currencies.length>0){
+		dbSales.transaction(function(tx){
+			//tx.executeSql("DELETE FROM CURRENCY");
+		HTML("statusText","RECIBIENDO DATOS DE DIVISAS");
+		for(var i=0;i<currencies.length;i++){
+			tx.executeSql("INSERT INTO CURRENCY VALUES(?,?,?,?,?)",
+					[user.companyCode,
+					 xmlTagNodeValue(currencies[i], "code"),
+					 xmlTagNodeValue(currencies[i], "name"),
+					 xmlTagNodeValue(currencies[i], "symbol"),
+					 xmlTagNodeValue(currencies[i], "local")],
+					 function(){},function(a,b){console.log(a);console.log(b);});
+		}
+		});
+	}
+	
+	var priceLists = xml.getElementsByTagName("pricelists")[0].getElementsByTagName("pricelist");
+	if(priceLists.length>0){
+		dbSales.transaction(function(tx){
+			//tx.executeSql("DELETE FROM PRICELIST");
+		HTML("statusText","RECIBIENDO DATOS LISTAS DE PRECIO");
+		for(var i=0;i<priceLists.length;i++){
+			tx.executeSql("INSERT INTO PRICELIST VALUES(?,?,?)",
+					[user.companyCode,
+					 xmlTagNodeValue(priceLists[i], "code"),
+					 xmlTagNodeValue(priceLists[i], "name")],
+					 function(tx,results){},function(a,b){console.log(a);console.log(b);});
+		}
+		});
+	}
+	console.log("itinerarios bloque");
+	var itineraries = xml.getElementsByTagName("itineraries")[0].getElementsByTagName("itinerary");
+	var clients = [];
+	var clientTypes=[];
+	if(itineraries.length>0){
+		dbSales.transaction(function(tx){
+			
+			//tx.executeSql("DELETE FROM ITINERARY");
+			//tx.executeSql("DELETE FROM CLIENT");
+			//tx.executeSql("DELETE FROM CLIENTTYPE");
+			//tx.executeSql("DELETE FROM CLIENTADDRESS");
+			//tx.executeSql("DELETE FROM SALEMODECLIENT");
+			//tx.executeSql("DELETE FROM PRICELISTCLIENT");
+			HTML("statusText","RECIBIENDO CLIENTES POR VISITAR");
+			for(var i=0;i<itineraries.length;i++){
+			
+				var xmlClientAddress = itineraries[i].getElementsByTagName("clientaddress")[0];
+				var xmlClient = xmlClientAddress.getElementsByTagName("client")[0];
+				var client = {
+						
+					code: xmlTagNodeValue(xmlClient, "code"),
+					name: xmlTagNodeValue(xmlClient, "name"),
+					ruc:xmlClient.getElementsByTagName("ruc")[0].firstChild.nodeValue,
+					phone:xmlTagNodeValue(xmlClient, "phone"),
+					clientType:{
+						code:xmlTagNodeValue(xmlClient.getElementsByTagName("clienttype")[0], "code"),
+						name:xmlTagNodeValue(xmlClient.getElementsByTagName("clienttype")[0], "name")
+					}
+			};
+			
+			var insert=true;
+			for(var x=0;x<clientTypes.length;x++){
+				if(clientTypes[x].code==client.clientType.code){
+					insert=false;
+					break;
+				}
+			}
+			if(insert){
+				clientTypes[clientTypes.length]=client.clientType;
+				
+				tx.executeSql("INSERT INTO CLIENTTYPE VALUES(?,?,?)",[user.companyCode,
+				                                                      client.clientType.code,
+				                                                      client.clientType.name]);
+			}
+			insert = true;
+			for(var x=0;x<clients.length;x++){
+				if(clients[x].code==client.code){
+					insert=false;
+					break;
+				}
+			}
+			if(insert){
+				clients[clients.length]=client;
+				tx.executeSql("INSERT INTO CLIENT VALUES(?,?,?,?,?,?)",[user.companyCode,
+				                                                         client.code,
+				                                                         client.name,
+				                                                         client.ruc,
+				                                                         client.phone,
+				                                                         client.clientType.code]
+							,function(a,b){console.log(a);console.log(b);}
+							,function(e){console.log("error cliente");console.log(e);});
+				var xmlList = xmlClient.getElementsByTagName("pricelists")[0].getElementsByTagName("pricelist");
+				for(var x=0;x<xmlList.length;x++){
+					tx.executeSql("INSERT INTO PRICELISTCLIENT VALUES(?,?,?)",[user.companyCode,
+					                                                           xmlList[x].getElementsByTagName("code")[0].firstChild.nodeValue,
+					                                                           client.code]);
+				}
+				
+				xmlList = xmlClient.getElementsByTagName("salemodes")[0].getElementsByTagName("salemode");
+				for(var x=0;x<xmlList.length;x++){
+					tx.executeSql("INSERT INTO SALEMODECLIENT VALUES(?,?,?)",[user.companyCode,
+					                                                          xmlList[x].getElementsByTagName("code")[0].firstChild.nodeValue,
+					                                                           client.code]);
+				}
+				
+			}
+			tx.executeSql("INSERT INTO CLIENTADDRESS VALUES(?,?,?,?,?)",[user.companyCode,
+			                                                             client.code,
+			                                                             xmlClientAddress.getElementsByTagName("code")[0].firstChild.nodeValue,
+			                                                             xmlClientAddress.getElementsByTagName("name")[0].firstChild.nodeValue,
+			                                                             xmlClientAddress.getElementsByTagName("type")[0].firstChild.nodeValue,
+			                                                             ]);
+			
+			tx.executeSql("INSERT INTO ITINERARY VALUES(?,?,?,?,?,?,?,'ACT')",[user.companyCode,
+			                                                                   xmlTagNodeValue(itineraries[i], "code"),
+			                                                                   client.code,
+			                                                                   xmlTagNodeValue(xmlClientAddress, "code"),
+			                                                                   xmlTagNodeValue(itineraries[i], "day"),
+			                                                                   xmlTagNodeValue(itineraries[i], "frequency"),
+			                                                                   xmlTagNodeValue(itineraries[i], "date")
+			                                                               ]);
+			
+		}
+		},errorTransaction);
+	}////que aca muera la condicion si existe itinerarios
+		
+		var productprices = xml.getElementsByTagName("productprices")[0].getElementsByTagName("productprice");
+		if(productprices.length>0){
+			dbSales.transaction(function(tx){
+				//tx.executeSql("DELETE FROM PRODUCTPRICE");
+				//tx.executeSql("DELETE FROM PRODUCTUNITY");
+				//tx.executeSql("DELETE FROM PRODUCT");
+				HTML("statusText","GUARDANDO PRODUCTOS Y PRECIOS");
+				var products = [];
+				var productunities=[];
+				for(var i=0;i<productprices.length;i++){
+					var xmlProductUnity=productprices[i].getElementsByTagName("productunity")[0];
+					var xmlProduct = xmlProductUnity.getElementsByTagName("product")[0];
+					var priceListCode = productprices[i].getElementsByTagName("pricelist")[0].getElementsByTagName("code")[0].firstChild.nodeValue;
+					var currencyCode = productprices[i].getElementsByTagName("currency")[0].getElementsByTagName("code")[0].firstChild.nodeValue;
+					
+					var insert = true;
+					var product = {
+							code:xmlProduct.getElementsByTagName("code")[0].firstChild.nodeValue,
+							name:xmlProduct.getElementsByTagName("name")[0].firstChild.nodeValue,
+							trademark:xmlProduct.getElementsByTagName("trademark")[0].firstChild.nodeValue,
+							category:{
+								code: xmlProduct.getElementsByTagName("category")[0].getElementsByTagName("code")[0].firstChild.nodeValue
+							}
+					};
+					
+					for(var x=0;x<products.length;x++){
+						if(product.code==products[x].code){
+							insert = false;
+							break;
+						}
+					}
+					
+					if(insert){
+						
+						products[products.length]=product;
+						tx.executeSql("INSERT INTO PRODUCT VALUES(?,?,?,?,?)",[user.companyCode,
+						                                                       product.code,
+						                                                       product.name,
+						                                                       product.trademark,
+						                                                       product.category.code],null,errorTransaction);
+					}
+					
+					
+					var productUnity = {
+							code:xmlProductUnity.getElementsByTagName("code")[0].firstChild.nodeValue,
+							name:xmlProductUnity.getElementsByTagName("name")[0].firstChild.nodeValue,
+							stock:xmlProductUnity.getElementsByTagName("stock")[0].firstChild.nodeValue,
+							warehouse:{
+								code:xmlProductUnity.getElementsByTagName("warehouse")[0].getElementsByTagName("code")[0].firstChild.nodeValue
+							},
+						product:product
+					};
+					insert = true;
+					for(var x=0;x<productunities.length;x++){
+						
+						if(productUnity.code==productunities[x].code && productUnity.product.code==productunities[x].product.code){
+							insert = false;
+							break;
+						}
+					}
+					
+					if(insert){
+						console.log(":::si:::");
+						console.log(productUnity);
+						
+						productunities[productunities.length]=productUnity;
+						tx.executeSql("INSERT INTO PRODUCTUNITY VALUES(?,?,?,?,?,?)",[user.companyCode,
+						                                                            product.code,
+						                                                            productUnity.warehouse.code,
+						                                                            productUnity.code,
+						                                                            productUnity.name,
+						                                                            productUnity.stock],null,errorTransaction);
+					}
+					
+					tx.executeSql("INSERT INTO PRODUCTPRICE VALUES(?,?,?,?,?,?,?)",[user.companyCode,
+					                                                                priceListCode,
+					                                                                productUnity.code,
+					                                                                product.code,
+					                                                                productUnity.warehouse.code,
+					                                                                currencyCode,
+					                                                                productprices[i].getElementsByTagName("price")[0].firstChild.nodeValue],null,errorTransaction);
+				}
+				
+				HTML("statusText","DATOS RECIBIDOS CORRECTAMENTE");
+				ID("imgLoad").src="img/downloaded.jpg";
+			},errorTransaction);
+	}
+	});
+}
+function cargaPagina(){
+	cargaUsuario(true,setEvents);
+}
+function setEvents(){
+	ID("menuLink").addEventListener("click",animateMenu);
+	ID("itemUpload").addEventListener("click",cargaOUT);
+	ID("itemDownload").addEventListener("click",cargaIN);
+	ID("itemBack").addEventListener("click",function(){
+		browse("menu.html");
+	});
+	ID("itemHome").addEventListener("click",function(){
+		browse("menu.html");
+	});
+	ID("itemExit").addEventListener("click",function(){
+		salir();
+	});
+	
+}
+function cargaIN(){
+	var param = "type=UPDATE_IN&userCode="+ user.code +"&warehouseCode="+user.warehouseCode+"&companyCode="+user.companyCode;
+	console.log(param);
+	sendAsyncRequest("phone","POST",param,getALLIN);
+	ID("imgLoad").style.display="block";
+	ID("imgLoad").src="img/download.gif";
+	HTML("statusText","ENVIANDO SOLICITUD");
+}
+var sales = [];
+function cargaOUT(){
+		dbSales.transaction(function(tx){
+			ID("imgLoad").style.display="block";
+			ID("imgLoad").src="img/upload.gif";
+			HTML("statusText","OBTENIENDO PENDIENTES LOCALMENTE");
+			tx.executeSql("SELECT * FROM SALE WHERE STATE='SAVED'",[],function(tx,results){
+				if(results.rows.length>0){
+					HTML("statusText","PENDIENTES OBTENIDOS");
+					for(var i=0;i<results.rows.length;i++){
+						var sale = {
+								code:results.rows.item(i).CODE,
+								itineraryCode:""+results.rows.item(i).ITINERARYCODE,
+								companyCode:results.rows.item(i).COMPANYCODE,
+								clientCode:results.rows.item(i).CLIENTCODE,
+								clientAddressCode:results.rows.item(i).CLIENTADDRESSCODE,
+								userCode:results.rows.item(i).USERCODE,
+								saleTypeCode:results.rows.item(i).SALETYPECODE,
+								currencyCode:results.rows.item(i).CURRENCYCODE,
+								saleModeCode:results.rows.item(i).SALEMODECODE,
+								noSaleCode:results.rows.item(i).NOSALECODE,
+								obs:results.rows.item(i).OBS,
+								priceListCode:results.rows.item(i).PRICELISTCODE,
+								deliveryDate:results.rows.item(i).DELIVERYDATE,
+								latitude:results.rows.item(i).LATITUDE,
+								longitude:results.rows.item(i).LONGITUDE,
+								mobileDate:results.rows.item(i).REGISTEREDDATE,
+								details:[]
+						};
+						sales.push(sale);
+						tx.executeSql("SELECT * FROM SALEDETAIL WHERE SALECODE= ?",[sale.code],function(tx,resultsx){
+							if(resultsx.rows.length>0){
+								var temp = null;
+								for(var x=0;x<sales.length;x++){
+									if(sales[x].code==resultsx.rows.item(0).SALECODE){
+										temp = sales[x];
+										break;
+									}
+								}
+								
+								for(var x=0;x<resultsx.rows.length;x++){
+									temp.details.push({
+										item:resultsx.rows.item(x).ITEM,
+										productCode:resultsx.rows.item(x).PRODUCTCODE,
+										warehouseCode:resultsx.rows.item(x).WAREHOUSECODE,
+										productUnityCode:resultsx.rows.item(x).PRODUCTUNITYCODE,
+										quantity:resultsx.rows.item(x).QUANTITY,
+										price:resultsx.rows.item(x).PRICE,
+										editedPrice:resultsx.rows.item(x).EDITEDPRICE,
+										discount:resultsx.rows.item(x).DISCOUNT,
+										subtotal:resultsx.rows.item(x).SUBTOTAL
+									});
+								}
+							}
+							
+						});
+					}
+				}
+			},errorTransaction);
+			
+		},errorTransaction,function(){
+			console.log(sales);
+			HTML("statusText","ENVIANDO PENDIENTES AL SERVIDOR");
+			var params = getUserParams()+"&type=UPDATE_OUT&sales="+encodeURI(JSON.stringify(sales));
+			sendAsyncRequest("phone","POST",params,setALLOUT);
+			sales=[];
+		});
+}
+function setALLOUT(text){
+	var xml = responseXML(text);
+	HTML("statusText","ENVIADOS CON EXITO");
+	var codes = xml.getElementsByTagName("code");
+	dbSales.transaction(function(tx){
+		console.log(codes);
+		if(codes.length>0){
+			for(var i=0;i<codes.length;i++){
+				var code = codes[i];
+				var servercode = code.lastChild.firstChild.nodeValue;
+				var webcode = code.firstChild.firstChild.nodeValue;
+				console.log(servercode+"::::"+webcode);
+				
+				
+				tx.executeSql("SELECT REGISTEREDDATE FROM SALE WHERE CODE=?",[webcode],
+						function(tx,results){
+							if(results.rows.length>0){
+								var saledate = results.rows.item(0).REGISTEREDDATE;
+								saledate.substring(0,saledate.indexOf(' '));
+								if(saledate==toStringDate(new Date(), ONLY_DATE)){
+									tx.executeSql("UPDATE ITINERARY SET STATE = STATE||'|SERVER' WHERE CODE = ? AND CLIENTCODE=? AND CLIENTADDRESSCODE=?",
+											[code.getAttribute("itineraryCode"),
+											 code.getAttribute("clientCode"),
+											 code.getAttribute("clientAddressCode")],
+											null,
+											errorTransaction);
+								}
+							}
+				});
+				tx.executeSql("UPDATE SALEDETAIL  SET SALECODE = ?  WHERE SALECODE = ?",
+						[servercode,webcode],
+						null,
+						errorTransaction);
+				tx.executeSql("UPDATE SALE SET CODE = ? , STATE = 'SERVER' WHERE CODE = ?" ,
+						[servercode,webcode],
+						null,
+						errorTransaction);
+				
+			}
+	
+		}
+	},null,function(){
+		ID("imgLoad").src="img/uploaded.png";
+		HTML("statusText","SUBIDOS Y ACTUALZADOS AL 100%");
+	});
+	
+}
+</script>
+</head>
+<body>
+	<div id="menuHeader">
+		<div id="menuLink">
+			<div id="divMenuContent">
+				<div id="itemHome"><span>MENU</span> </div>
+				<div id="itemBack"><span>VOLVER</span> </div>
+				<div id="itemDownload"><span>DESCARGAR</span> </div>
+				<div id="itemUpload"><span>SUBIR</span> </div>
+				<div id="itemExit"><span>SALIR</span> </div>
+			</div>
+		</div>
+	</div>
+	<div style="width:100%;margin-top:25%;">
+		<img  id="imgLoad" alt="descargar actualizaciones" style="margin: 0 auto;display:none;"/>
+		<span id="statusText" style="margin: 0 auto;display:block;text-align:center;color:#46aee3;font-weight:bold;"></span>
+	</div>
+</body>
+</html>
